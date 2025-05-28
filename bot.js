@@ -454,9 +454,11 @@ async function postPartnerships() {
     lastPosted[server.guild_id] = partner.guild_id;
     // Fetch latest icon URL for partner
     let partnerIcon = partner.icon_url;
+    let memberCount = null;
     try {
       const partnerGuild = await client.guilds.fetch(partner.guild_id);
       partnerIcon = partnerGuild.iconURL({ dynamic: true, size: 256 }) || partner.icon_url;
+      memberCount = partnerGuild.memberCount;
       // Update icon_url in Supabase
       await supabase.from('partnerships').update({ icon_url: partnerIcon, server_name: partnerGuild.name }).eq('guild_id', partner.guild_id);
     } catch {}
@@ -464,22 +466,12 @@ async function postPartnerships() {
     const embed = {
       title: `🌟 ${partner.server_name || 'Partner Server'} 🌟`,
       description:
-        `━━━━━━━━━━━━━━━━━━
-` +
-        `**📝 Description:**
-${partner.description}
-
-` +
-        `🔗 **Invite:** [Join Here](${partner.invite_link})
-
-` +
-        `🏷️ **Category:** 
-${partner.category}
-
-` +
-        `🏷️ **Subcategories:** 
-${(partner.subcategories || []).join(', ') || 'None'}
-` +
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `**📝 Description:**\n${partner.description}\n\n` +
+        `🔗 **Invite:** [Join Here](${partner.invite_link})\n\n` +
+        `🏷️ **Category:** \n${partner.category}\n\n` +
+        `🏷️ **Subcategories:** \n${(partner.subcategories || []).join(', ') || 'None'}\n\n` +
+        (memberCount !== null ? `👥 **Members:** ${memberCount}\n\n` : '') +
         `━━━━━━━━━━━━━━━━━━` ,
       thumbnail: partnerIcon ? { url: partnerIcon } : undefined,
       color: 0x6a5acd,
