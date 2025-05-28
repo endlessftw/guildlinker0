@@ -414,6 +414,9 @@ let lastPosted = {};
 let lastPostTime = null;
 let intervalStarted = false;
 
+// Track previous partnerships to avoid repeats
+let previousPairs = new Set();
+
 client.once('ready', () => {
   if (!intervalStarted) {
     postPartnerships(); // Post immediately on startup
@@ -433,22 +436,37 @@ async function postPartnerships() {
   // Filter servers with a channel set
   const eligibleServers = allServers.filter(s => s.channel);
   const paired = new Set();
+  const newPairs = new Set();
   for (let i = 0; i < eligibleServers.length; i++) {
     const serverA = eligibleServers[i];
     if (paired.has(serverA.guild_id)) continue;
-    // Find a partner for serverA
-    const partner = eligibleServers.find((s, j) =>
+    // Find a partner for serverA that hasn't been paired with it before, if possible
+    let partner = eligibleServers.find((s, j) =>
       i !== j &&
       !paired.has(s.guild_id) &&
       (
         s.category === serverA.category ||
         (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)))
-      )
+      ) &&
+      !previousPairs.has([serverA.guild_id, s.guild_id].sort().join('-'))
     );
+    // If all have been paired before, fallback to any eligible partner
+    if (!partner) {
+      partner = eligibleServers.find((s, j) =>
+        i !== j &&
+        !paired.has(s.guild_id) &&
+        (
+          s.category === serverA.category ||
+          (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)))
+        )
+      );
+    }
     if (!partner) continue;
     // Mark both as paired
     paired.add(serverA.guild_id);
     paired.add(partner.guild_id);
+    // Track this pair for next time
+    newPairs.add([serverA.guild_id, partner.guild_id].sort().join('-'));
     // Fetch member counts and icons
     let serverAIcon = serverA.icon_url;
     let serverAMemberCount = null;
@@ -515,6 +533,8 @@ async function postPartnerships() {
       console.error(`Failed to post partnership in ${partner.guild_id}:`, err);
     }
   }
+  // Update previousPairs for next cycle
+  previousPairs = newPairs;
 }
 
 client.login(process.env.DISCORD_TOKEN);
