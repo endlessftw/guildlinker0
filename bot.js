@@ -97,6 +97,10 @@ const commands = [
   {
     name: 'status',
     description: 'Show the current status of the bot and number of registered servers'
+  },
+  {
+    name: 'invite',
+    description: 'Get the bot invite link and official server link'
   }
 ];
 
@@ -154,10 +158,11 @@ client.on('interactionCreate', async interaction => {
           '   ┗ _/test [channel]_\n' +
           '\n' +
           '🚀 **/forcepost** — Manually trigger partnership posting (admin only)\n' +
+          '\n' +          '🛑 **/shutdown** — Shut down the bot (bot owner only)\n' +
           '\n' +
-          '🛑 **/shutdown** — Shut down the bot (bot owner only)\n' +
+          '🔗 **/invite** — Get the bot invite link and official server\n' +
           '━━━━━━━━━━━━━━━━━━',
-        footer: { text: 'GuildLinker Bot • Need help? Contact the bot owner.' }
+        footer: { text: 'GuildLinker Bot' }
       }]
     });
     return;
@@ -195,7 +200,7 @@ client.on('interactionCreate', async interaction => {
           color: 0xff5555,
           title: '❌ Registration Failed',
           description: 'There was an error registering your server. Please try again later or contact support.',
-          footer: { text: 'Lorely Bot' }
+          footer: { text: client.user.username }
         }]
       });
     } else {
@@ -205,7 +210,7 @@ client.on('interactionCreate', async interaction => {
           color: 0x57f287,
           title: '✅ Registration Successful',
           description: 'Your server has been registered for partnerships!\n\nUse **/setchannel** to set your partnership channel.',
-          footer: { text: 'Lorely Bot' }
+          footer: { text: client.user.username }
         }]
       });
     }
@@ -227,7 +232,7 @@ client.on('interactionCreate', async interaction => {
           color: 0xff5555,
           title: '❌ Channel Not Set',
           description: 'Failed to set the partnership channel. Please try again.',
-          footer: { text: 'Lorely Bot' }
+          footer: { text: client.user.username }
         }]
       });
       return;
@@ -238,7 +243,7 @@ client.on('interactionCreate', async interaction => {
         color: 0x57f287,
         title: '📢 Channel Set',
         description: `Partnership channel set to <#${ch.id}>!`,
-        footer: { text: 'Lorely Bot' }
+        footer: { text: client.user.username }
       }]
     });
     return;
@@ -253,7 +258,7 @@ client.on('interactionCreate', async interaction => {
           color: 0xff5555,
           title: '❌ Unregister Failed',
           description: 'Failed to unregister your server. Please try again.',
-          footer: { text: 'Lorely Bot' }
+          footer: { text: client.user.username }
         }]
       });
     } else {
@@ -263,7 +268,7 @@ client.on('interactionCreate', async interaction => {
           color: 0xff5555,
           title: '❌ Unregistered',
           description: 'Your server has been removed from the partnership program.',
-          footer: { text: 'Lorely Bot' }
+          footer: { text: client.user.username }
         }]
       });
     }
@@ -284,7 +289,7 @@ client.on('interactionCreate', async interaction => {
           color: 0xff5555,
           title: 'ℹ️ Not Registered',
           description: 'Your server is not registered for partnerships.',
-          footer: { text: 'Lorely Bot' }
+          footer: { text: client.user.username }
         }]
       });
       return;
@@ -303,7 +308,7 @@ client.on('interactionCreate', async interaction => {
           `📢 **Channel:** ${data.channel ? `<#${data.channel}>` : 'Not set'}\n` +
           '━━━━━━━━━━━━━━━━━━',
         thumbnail: iconURL ? { url: iconURL } : undefined,
-        footer: { text: 'Lorely Bot' }
+        footer: { text: client.user.username }
       }]
     });
     return;
@@ -316,7 +321,7 @@ client.on('interactionCreate', async interaction => {
         color: 0xffd700,
         title: '⚠️ Not Implemented',
         description: 'This command is not implemented yet. Stay tuned for updates!',
-        footer: { text: 'Lorely Bot' }
+        footer: { text: client.user.username }
       }]
     });
     return;
@@ -333,7 +338,7 @@ client.on('interactionCreate', async interaction => {
           color: 0xff5555,
           title: '❌ Permission Denied',
           description: 'Only the bot owner can shut down the bot.',
-          footer: { text: 'Lorely Bot' }
+          footer: { text: client.user.username }
         }]
       });
       return;
@@ -344,7 +349,7 @@ client.on('interactionCreate', async interaction => {
         color: 0xff5555,
         title: '🛑 Shutting Down',
         description: 'The bot is shutting down. See you soon! 👋',
-        footer: { text: 'Lorely Bot' }
+        footer: { text: client.user.username }
       }]
     });
     setTimeout(() => process.exit(0), 1000);
@@ -379,6 +384,25 @@ client.on('interactionCreate', async interaction => {
           '━━━━━━━━━━━━━━━━━━',
         footer: { text: 'GuildLinker Bot' }
       }]
+    });
+    return;
+  }
+
+  if (commandName === 'invite') {
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [
+        {
+          color: 0x6a5acd,
+          title: '🤖 Invite GuildLinker to Your Server!',
+          description:
+            '**Add GuildLinker to your server:**\n' +
+            '[Invite Link](https://discord.com/oauth2/authorize?client_id=1376795987116298251&permissions=2147601472&integration_type=0&scope=bot)\n\n' +
+            '**Join the Official GuildLinker Discord:**\n' +
+            '[Official Server](https://discord.gg/gF434TXafj)',
+          footer: { text: 'GuildLinker Bot' }
+        }
+      ]
     });
     return;
   }
