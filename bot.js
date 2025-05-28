@@ -430,40 +430,44 @@ async function postPartnerships() {
     console.error('Failed to fetch partnerships:', error);
     return;
   }
-  for (const server of allServers) {
-    if (!server.channel) continue;
-    // Find potential partners (not self, same category or subcategory, have channel)
-    const partners = allServers.filter(s =>
-      s.guild_id !== server.guild_id &&
-      s.channel &&
+  // Filter servers with a channel set
+  const eligibleServers = allServers.filter(s => s.channel);
+  const paired = new Set();
+  for (let i = 0; i < eligibleServers.length; i++) {
+    const serverA = eligibleServers[i];
+    if (paired.has(serverA.guild_id)) continue;
+    // Find a partner for serverA
+    const partner = eligibleServers.find((s, j) =>
+      i !== j &&
+      !paired.has(s.guild_id) &&
       (
-        s.category === server.category ||
-        (s.subcategories && server.subcategories && s.subcategories.some(sub => server.subcategories.includes(sub)))
+        s.category === serverA.category ||
+        (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)))
       )
     );
-    if (partners.length === 0) continue;
-    // Avoid posting the same partner twice in a row
-    let partner = partners[Math.floor(Math.random() * partners.length)];
-    if (lastPosted[server.guild_id] && partners.length > 1) {
-      let tries = 0;
-      while (partner.guild_id === lastPosted[server.guild_id] && tries < 5) {
-        partner = partners[Math.floor(Math.random() * partners.length)];
-        tries++;
-      }
-    }
-    lastPosted[server.guild_id] = partner.guild_id;
-    // Fetch latest icon URL for partner
+    if (!partner) continue;
+    // Mark both as paired
+    paired.add(serverA.guild_id);
+    paired.add(partner.guild_id);
+    // Fetch member counts and icons
+    let serverAIcon = serverA.icon_url;
+    let serverAMemberCount = null;
     let partnerIcon = partner.icon_url;
-    let memberCount = null;
+    let partnerMemberCount = null;
     try {
-      const partnerGuild = await client.guilds.fetch(partner.guild_id);
-      partnerIcon = partnerGuild.iconURL({ dynamic: true, size: 256 }) || partner.icon_url;
-      memberCount = partnerGuild.memberCount;
-      // Update icon_url in Supabase
-      await supabase.from('partnerships').update({ icon_url: partnerIcon, server_name: partnerGuild.name }).eq('guild_id', partner.guild_id);
+      const guildA = await client.guilds.fetch(serverA.guild_id);
+      serverAIcon = guildA.iconURL({ dynamic: true, size: 256 }) || serverA.icon_url;
+      serverAMemberCount = guildA.memberCount;
+      await supabase.from('partnerships').update({ icon_url: serverAIcon, server_name: guildA.name }).eq('guild_id', serverA.guild_id);
     } catch {}
-    // Compose partnership embed
-    const embed = {
+    try {
+      const guildB = await client.guilds.fetch(partner.guild_id);
+      partnerIcon = guildB.iconURL({ dynamic: true, size: 256 }) || partner.icon_url;
+      partnerMemberCount = guildB.memberCount;
+      await supabase.from('partnerships').update({ icon_url: partnerIcon, server_name: guildB.name }).eq('guild_id', partner.guild_id);
+    } catch {}
+    // Compose embeds
+    const embedA = {
       title: `🌟 ${partner.server_name || 'Partner Server'} 🌟`,
       description:
         `━━━━━━━━━━━━━━━━━━\n` +
@@ -471,20 +475,44 @@ async function postPartnerships() {
         `🔗 **Invite:** [Join Here](${partner.invite_link})\n\n` +
         `🏷️ **Category:** \n${partner.category}\n\n` +
         `🏷️ **Subcategories:** \n${(partner.subcategories || []).join(', ') || 'None'}\n\n` +
-        (memberCount !== null ? `👥 **Members:** ${memberCount}\n\n` : '') +
+        (partnerMemberCount !== null ? `👥 **Members:** ${partnerMemberCount}\n\n` : '') +
         `━━━━━━━━━━━━━━━━━━` ,
       thumbnail: partnerIcon ? { url: partnerIcon } : undefined,
       color: 0x6a5acd,
       footer: { text: '🤝 Partnership Opportunity' }
     };
+    const embedB = {
+      title: `🌟 ${serverA.server_name || 'Partner Server'} 🌟`,
+      description:
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `**📝 Description:**\n${serverA.description}\n\n` +
+        `🔗 **Invite:** [Join Here](${serverA.invite_link})\n\n` +
+        `🏷️ **Category:** \n${serverA.category}\n\n` +
+        `🏷️ **Subcategories:** \n${(serverA.subcategories || []).join(', ') || 'None'}\n\n` +
+        (serverAMemberCount !== null ? `👥 **Members:** ${serverAMemberCount}\n\n` : '') +
+        `━━━━━━━━━━━━━━━━━━` ,
+      thumbnail: serverAIcon ? { url: serverAIcon } : undefined,
+      color: 0x6a5acd,
+      footer: { text: '🤝 Partnership Opportunity' }
+    };
+    // Post in both servers
     try {
-      const guild = await client.guilds.fetch(server.guild_id);
-      const channel = await guild.channels.fetch(server.channel);
-      if (channel && channel.isTextBased()) {
-        await channel.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embed] });
+      const guildA = await client.guilds.fetch(serverA.guild_id);
+      const channelA = await guildA.channels.fetch(serverA.channel);
+      if (channelA && channelA.isTextBased()) {
+        await channelA.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embedA] });
       }
     } catch (err) {
-      console.error(`Failed to post partnership in ${server.guild_id}:`, err);
+      console.error(`Failed to post partnership in ${serverA.guild_id}:`, err);
+    }
+    try {
+      const guildB = await client.guilds.fetch(partner.guild_id);
+      const channelB = await guildB.channels.fetch(partner.channel);
+      if (channelB && channelB.isTextBased()) {
+        await channelB.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embedB] });
+      }
+    } catch (err) {
+      console.error(`Failed to post partnership in ${partner.guild_id}:`, err);
     }
   }
 }
