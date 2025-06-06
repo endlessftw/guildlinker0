@@ -446,7 +446,6 @@ async function postPartnerships() {
       await supabase.from('partnerships').update({ icon_url: partnerIcon, server_name: guildB.name }).eq('guild_id', partner.guild_id);
     } catch {}
     // Compose embeds
-    const botInviteLink = '(https://discord.com/oauth2/authorize?client_id=1376795987116298251&permissions=2147601472&integration_type=0&scope=bot)';
     const embedA = {
       title: `🌟 ${partner.server_name || 'Partner Server'} 🌟`,
       description:
@@ -456,8 +455,7 @@ async function postPartnerships() {
         `🏷️ **Category:** \n${partner.category}\n\n` +
         `🏷️ **Subcategories:** \n${(partner.subcategories || []).join(', ') || 'None'}\n\n` +
         (partnerMemberCount !== null ? `👥 **Members:** ${partnerMemberCount}\n\n` : '') +
-        `━━━━━━━━━━━━━━━━━━\n` +
-        `${botInviteLink}` ,
+        `━━━━━━━━━━━━━━━━━━\n`,
       thumbnail: partnerIcon ? { url: partnerIcon } : undefined,
       color: 0x6a5acd,
       footer: { text: '🤝 Partnership Opportunity' }
@@ -471,8 +469,7 @@ async function postPartnerships() {
         `🏷️ **Category:** \n${serverA.category}\n\n` +
         `🏷️ **Subcategories:** \n${(serverA.subcategories || []).join(', ') || 'None'}\n\n` +
         (serverAMemberCount !== null ? `👥 **Members:** ${serverAMemberCount}\n\n` : '') +
-        `━━━━━━━━━━━━━━━━━━\n` +
-        `${botInviteLink}` ,
+        `━━━━━━━━━━━━━━━━━━\n`,
       thumbnail: serverAIcon ? { url: serverAIcon } : undefined,
       color: 0x6a5acd,
       footer: { text: '🤝 Partnership Opportunity' }
@@ -483,7 +480,7 @@ async function postPartnerships() {
       const channelA = await guildA.channels.fetch(serverA.channel);
       if (channelA && channelA.isTextBased()) {
         await channelA.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embedA] });
-        await channelA.send('(https://discord.com/oauth2/authorize?client_id=1376795987116298251&permissions=2147601472&integration_type=0&scope=bot)');
+        await channelA.send(`(${partner.invite_link})`);
       }
     } catch (err) {
       console.error(`Failed to post partnership in ${serverA.guild_id}:`, err);
@@ -493,7 +490,7 @@ async function postPartnerships() {
       const channelB = await guildB.channels.fetch(partner.channel);
       if (channelB && channelB.isTextBased()) {
         await channelB.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embedB] });
-        await channelB.send('(https://discord.com/oauth2/authorize?client_id=1376795987116298251&permissions=2147601472&integration_type=0&scope=bot)');
+        await channelB.send(`(${serverA.invite_link})`);
       }
     } catch (err) {
       console.error(`Failed to post partnership in ${partner.guild_id}:`, err);
