@@ -72,25 +72,6 @@ const commands = [
     description: 'Show all available commands'
   },
   {
-    name: 'setinterval',
-    description: 'Set the interval between partnership posts (admin only)',
-    options: [
-      { name: 'value', type: 4, description: 'Interval value', required: true },
-      { name: 'unit', type: 3, description: 'minutes or hours', required: true }
-    ]
-  },
-  {
-    name: 'test',
-    description: 'Test the partnership message in a channel (admin only)',
-    options: [
-      { name: 'channel', type: 7, description: 'Channel', required: true }
-    ]
-  },
-  {
-    name: 'forcepost',
-    description: 'Manually trigger partnership posting (admin only)'
-  },
-  {
     name: 'shutdown',
     description: 'Shut down the bot (bot owner only)'
   },
@@ -151,14 +132,7 @@ client.on('interactionCreate', async interaction => {
           '\n' +
           'ℹ️ **/info** — View your server partnership info\n' +
           '\n' +
-          '🛠️ **/setinterval** — Set the interval between partnership posts (admin only)\n' +
-          '   ┗ _/setinterval [value] [unit]_\n' +
-          '\n' +
-          '🧪 **/test** — Test the partnership message in a channel (admin only)\n' +
-          '   ┗ _/test [channel]_\n' +
-          '\n' +
-          '🚀 **/forcepost** — Manually trigger partnership posting (admin only)\n' +
-          '\n' +          '🛑 **/shutdown** — Shut down the bot (bot owner only)\n' +
+          '🛑 **/shutdown** — Shut down the bot (bot owner only)\n' +
           '\n' +
           '🔗 **/invite** — Get the bot invite link and official server\n' +
           '━━━━━━━━━━━━━━━━━━',
@@ -308,19 +282,6 @@ client.on('interactionCreate', async interaction => {
           `📢 **Channel:** ${data.channel ? `<#${data.channel}>` : 'Not set'}\n` +
           '━━━━━━━━━━━━━━━━━━',
         thumbnail: iconURL ? { url: iconURL } : undefined,
-        footer: { text: client.user.username }
-      }]
-    });
-    return;
-  }
-
-  if (["setinterval", "test", "forcepost"].includes(commandName)) {
-    await interaction.reply({
-      ephemeral: true,
-      embeds: [{
-        color: 0xffd700,
-        title: '⚠️ Not Implemented',
-        description: 'This command is not implemented yet. Stay tuned for updates!',
         footer: { text: client.user.username }
       }]
     });
