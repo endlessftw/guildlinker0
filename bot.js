@@ -82,6 +82,10 @@ const commands = [
   {
     name: 'invite',
     description: 'Get the bot invite link and official server link'
+  },
+  {
+    name: 'nextpartnership',
+    description: 'See how many minutes until the next partnership post'
   }
 ];
 
@@ -131,6 +135,8 @@ client.on('interactionCreate', async interaction => {
           '❌ **/unregister** — Remove your server from the partnership program\n' +
           '\n' +
           'ℹ️ **/info** — View your server partnership info\n' +
+          '\n' +
+          '⏰ **/nextpartnership** — See how many minutes until the next partnership post\n' +
           '\n' +
           '🛑 **/shutdown** — Shut down the bot (bot owner only)\n' +
           '\n' +
@@ -364,6 +370,23 @@ client.on('interactionCreate', async interaction => {
           footer: { text: 'GuildLinker Bot' }
         }
       ]
+    });
+    return;
+  }
+
+  if (commandName === 'nextpartnership') {
+    const msUntilNext = getMsUntilNextFullHour();
+    const minutes = Math.ceil(msUntilNext / 60000);
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [{
+        color: 0x6a5acd,
+        title: '⏰ Next Partnership Post',
+        description:
+          `The next partnership message will be posted in **${minutes} minute${minutes === 1 ? '' : 's'}**.\n` +
+          'Partnerships are posted at the top of every hour (e.g., 12:00, 1:00, 2:00, etc.).',
+        footer: { text: client.user.username }
+      }]
     });
     return;
   }
