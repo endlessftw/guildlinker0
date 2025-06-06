@@ -371,23 +371,53 @@ client.on('interactionCreate', async interaction => {
 
 // Partnership posting interval (in ms)
 let postIntervalMs = 60 * 60 * 1000; // 1 hour by default
-let lastPosted = {};
-let lastPostTime = null;
 let intervalStarted = false;
 
-// Track previous partnerships to avoid repeats
-let previousPairs = new Set();
+// Store the last post time in a file so it persists across restarts
+const LAST_POST_FILE = 'last_post_time.json';
+
+function getNextFullHour() {
+  const now = new Date();
+  now.setMinutes(0, 0, 0);
+  now.setHours(now.getHours() + 1);
+  return now.getTime();
+}
+
+function getMsUntilNextFullHour() {
+  return getNextFullHour() - Date.now();
+}
+
+function saveLastPostTime(ts) {
+  try {
+    fs.writeFileSync(LAST_POST_FILE, JSON.stringify({ lastPost: ts }), 'utf8');
+  } catch (e) { console.error('Failed to save last post time:', e); }
+}
+
+function loadLastPostTime() {
+  try {
+    if (fs.existsSync(LAST_POST_FILE)) {
+      const data = JSON.parse(fs.readFileSync(LAST_POST_FILE, 'utf8'));
+      return data.lastPost || null;
+    }
+  } catch (e) { console.error('Failed to load last post time:', e); }
+  return null;
+}
 
 client.once('ready', () => {
   if (!intervalStarted) {
-    postPartnerships(); // Post immediately on startup
-    setInterval(postPartnerships, postIntervalMs);
+    // Calculate ms until next full hour
+    const msUntilNext = getMsUntilNextFullHour();
+    setTimeout(() => {
+      postPartnerships();
+      setInterval(postPartnerships, postIntervalMs);
+    }, msUntilNext);
     intervalStarted = true;
   }
 });
 
 async function postPartnerships() {
-  lastPostTime = Date.now();
+  const now = Date.now();
+  saveLastPostTime(now);
   // Fetch all registered servers from Supabase
   const { data: allServers, error } = await supabase.from('partnerships').select('*');
   if (error || !allServers) {
