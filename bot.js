@@ -395,6 +395,7 @@ client.on('interactionCreate', async interaction => {
 // Partnership posting interval (in ms)
 let postIntervalMs = 60 * 60 * 1000; // 1 hour by default
 let intervalStarted = false;
+let previousPairs = new Set();
 
 // Store the last post time in a file so it persists across restarts
 const LAST_POST_FILE = 'last_post_time.json';
