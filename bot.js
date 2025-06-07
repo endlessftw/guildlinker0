@@ -434,6 +434,7 @@ let previousPairs = new Set();
 
 // Store the last post time in a file so it persists across restarts
 const LAST_POST_FILE = 'last_post_time.json';
+const PAIR_HISTORY_FILE = 'pair_history.json';
 
 function getNextFullHour() {
   const now = new Date();
@@ -462,6 +463,22 @@ function loadLastPostTime() {
   return null;
 }
 
+function loadPairHistory() {
+  try {
+    if (fs.existsSync(PAIR_HISTORY_FILE)) {
+      const data = JSON.parse(fs.readFileSync(PAIR_HISTORY_FILE, 'utf8'));
+      return new Set(data.pairs || []);
+    }
+  } catch (e) { console.error('Failed to load pair history:', e); }
+  return new Set();
+}
+
+function savePairHistory(pairSet) {
+  try {
+    fs.writeFileSync(PAIR_HISTORY_FILE, JSON.stringify({ pairs: Array.from(pairSet) }), 'utf8');
+  } catch (e) { console.error('Failed to save pair history:', e); }
+}
+
 client.once('ready', () => {
   if (!intervalStarted) {
     // Calculate ms until next full hour
@@ -487,36 +504,64 @@ async function postPartnerships() {
   const eligibleServers = allServers.filter(s => s.channel);
   const paired = new Set();
   const newPairs = new Set();
+  const pairHistory = loadPairHistory();
+  // Calculate all possible unique pairs
+  const allPossiblePairs = new Set();
   for (let i = 0; i < eligibleServers.length; i++) {
-    const serverA = eligibleServers[i];
+    for (let j = i + 1; j < eligibleServers.length; j++) {
+      const a = eligibleServers[i].guild_id;
+      const b = eligibleServers[j].guild_id;
+      allPossiblePairs.add([a, b].sort().join('-'));
+    }
+  }
+  // If all pairs have been used, reset the history
+  if (pairHistory.size >= allPossiblePairs.size) {
+    pairHistory.clear();
+  }
+  // Shuffle eligible servers for randomness
+  const shuffled = eligibleServers.slice().sort(() => Math.random() - 0.5);
+  for (let i = 0; i < shuffled.length; i++) {
+    const serverA = shuffled[i];
     if (paired.has(serverA.guild_id)) continue;
     // Find a partner for serverA that hasn't been paired with it before, if possible
-    let partner = eligibleServers.find((s, j) =>
-      i !== j &&
-      !paired.has(s.guild_id) &&
-      (
+    let partner = null;
+    for (let j = 0; j < shuffled.length; j++) {
+      if (i === j) continue;
+      const s = shuffled[j];
+      if (paired.has(s.guild_id)) continue;
+      // Only pair if not in history and categories/subcategories match
+      const pairKey = [serverA.guild_id, s.guild_id].sort().join('-');
+      const categoryMatch =
         s.category === serverA.category ||
-        (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)))
-      ) &&
-      !previousPairs.has([serverA.guild_id, s.guild_id].sort().join('-'))
-    );
-    // If all have been paired before, fallback to any eligible partner
+        (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)));
+      if (!pairHistory.has(pairKey) && categoryMatch) {
+        partner = s;
+        break;
+      }
+    }
+    // If all have been paired before, fallback to any eligible partner (even if in history)
     if (!partner) {
-      partner = eligibleServers.find((s, j) =>
-        i !== j &&
-        !paired.has(s.guild_id) &&
-        (
+      for (let j = 0; j < shuffled.length; j++) {
+        if (i === j) continue;
+        const s = shuffled[j];
+        if (paired.has(s.guild_id)) continue;
+        const categoryMatch =
           s.category === serverA.category ||
-          (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)))
-        )
-      );
+          (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)));
+        if (categoryMatch) {
+          partner = s;
+          break;
+        }
+      }
     }
     if (!partner) continue;
     // Mark both as paired
     paired.add(serverA.guild_id);
     paired.add(partner.guild_id);
     // Track this pair for next time
-    newPairs.add([serverA.guild_id, partner.guild_id].sort().join('-'));
+    const pairKey = [serverA.guild_id, partner.guild_id].sort().join('-');
+    newPairs.add(pairKey);
+    pairHistory.add(pairKey);
     // Fetch member counts and icons
     let serverAIcon = serverA.icon_url;
     let serverAMemberCount = null;
@@ -589,6 +634,7 @@ async function postPartnerships() {
   }
   // Update previousPairs for next cycle
   previousPairs = newPairs;
+  savePairHistory(pairHistory);
 }
 
 client.login(process.env.DISCORD_TOKEN);
