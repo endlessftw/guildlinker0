@@ -449,37 +449,22 @@ async function postPartnerships() {
     return;
   }
   // Filter servers with a channel set
-  const eligibleServers = allServers.filter(s => s.channel);
-  const paired = new Set();
+  let eligibleServers = allServers.filter(s => s.channel);
+  // Shuffle eligible servers to randomize pairings
+  for (let i = eligibleServers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [eligibleServers[i], eligibleServers[j]] = [eligibleServers[j], eligibleServers[i]];
+  }
   const newPairs = new Set();
-  for (let i = 0; i < eligibleServers.length; i++) {
+  // Pair servers sequentially (0+1, 2+3, ...)
+  for (let i = 0; i < eligibleServers.length - 1; i += 2) {
     const serverA = eligibleServers[i];
-    if (paired.has(serverA.guild_id)) continue;
-    // Find a partner for serverA that hasn't been paired with it before, if possible
-    let partner = eligibleServers.find((s, j) =>
-      i !== j &&
-      !paired.has(s.guild_id) &&
-      (
-        s.category === serverA.category ||
-        (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)))
-      ) &&
-      !previousPairs.has([serverA.guild_id, s.guild_id].sort().join('-'))
-    );
-    // If all have been paired before, fallback to any eligible partner
-    if (!partner) {
-      partner = eligibleServers.find((s, j) =>
-        i !== j &&
-        !paired.has(s.guild_id) &&
-        (
-          s.category === serverA.category ||
-          (s.subcategories && serverA.subcategories && s.subcategories.some(sub => serverA.subcategories.includes(sub)))
-        )
-      );
-    }
-    if (!partner) continue;
-    // Mark both as paired
-    paired.add(serverA.guild_id);
-    paired.add(partner.guild_id);
+    const partner = eligibleServers[i + 1];
+    // Only pair if they share a category or subcategory
+    const shareCategory =
+      serverA.category === partner.category ||
+      (serverA.subcategories && partner.subcategories && serverA.subcategories.some(sub => partner.subcategories.includes(sub)));
+    if (!shareCategory) continue;
     // Track this pair for next time
     newPairs.add([serverA.guild_id, partner.guild_id].sort().join('-'));
     // Fetch member counts and icons
@@ -534,7 +519,6 @@ async function postPartnerships() {
       const channelA = await guildA.channels.fetch(serverA.channel);
       if (channelA && channelA.isTextBased()) {
         await channelA.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embedA] });
-        // Only send the partner's invite link (not the bot invite link)
         await channelA.send(`(${partner.invite_link})`);
       }
     } catch (err) {
@@ -545,7 +529,6 @@ async function postPartnerships() {
       const channelB = await guildB.channels.fetch(partner.channel);
       if (channelB && channelB.isTextBased()) {
         await channelB.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embedB] });
-        // Only send serverA's invite link (not the bot invite link)
         await channelB.send(`(${serverA.invite_link})`);
       }
     } catch (err) {
