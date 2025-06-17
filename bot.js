@@ -614,8 +614,7 @@ async function postPartnerships() {
       const channelA = await guildA.channels.fetch(serverA.channel);
       if (channelA && channelA.isTextBased()) {
         await channelA.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embedA] });
-        // Only send the partner's invite link (not the bot invite link)
-        await channelA.send(`(${partner.invite_link})`);
+        await channelA.send(partner.invite_link); // Invite link after embed
       }
     } catch (err) {
       console.error(`Failed to post partnership in ${serverA.guild_id}:`, err);
@@ -625,8 +624,7 @@ async function postPartnerships() {
       const channelB = await guildB.channels.fetch(partner.channel);
       if (channelB && channelB.isTextBased()) {
         await channelB.send({ content: '🤝 **Partnership Opportunity!**', embeds: [embedB] });
-        // Only send serverA's invite link (not the bot invite link)
-        await channelB.send(`(${serverA.invite_link})`);
+        await channelB.send(serverA.invite_link); // Invite link after embed
       }
     } catch (err) {
       console.error(`Failed to post partnership in ${partner.guild_id}:`, err);
